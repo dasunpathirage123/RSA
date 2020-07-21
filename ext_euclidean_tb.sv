@@ -11,6 +11,7 @@ module ext_euclidean_tb ();
   reg [WIDTH-1:0] Modular;
   reg [WIDTH-1:0] Multiplicative_Inv_Mod;
   reg [WIDTH-1:0] Multiplicative_Inv_Num;
+  reg             Multiplicative_Inv_Done;
   //reg             error;
 
   ext_euclidean
@@ -24,7 +25,8 @@ module ext_euclidean_tb ();
     .Multiplicative_Num(Multiplicative_Num),
     .Modular(Modular),
     .Multiplicative_Inv_Mod(Multiplicative_Inv_Mod),
-    .Multiplicative_Inv_Num(Multiplicative_Inv_Num)
+    .Multiplicative_Inv_Num(Multiplicative_Inv_Num),
+    .Multiplicative_Inv_Done(Multiplicative_Inv_Done)
     //.error (error)
   );
   
@@ -40,10 +42,11 @@ module ext_euclidean_tb ();
     initial begin
 
     aresetn = 1'b0;
-    Multiplicative_Num = 512'd3;
-    Modular            = 512'd640;
     @(negedge aclk);
     aresetn = 1'b1;
+
+    Multiplicative_Num = 512'd65537;//512'd65537;
+    Modular            = 512'd2888842268486202932714874625817823652432123301293983367421956718592;//512'd5127892139259;
     //#100
  
     end // initial
