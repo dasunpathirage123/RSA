@@ -10,20 +10,24 @@ module RSA_KEYGEN_Engine
 	input aresetn,  // Asynchronous reset active low
 	input next,
 
-	output reg [(3*WIDTH)-1:0]  qrs,
-	output reg [(3*WIDTH)-1:0]	prs,
-	output reg [(3*WIDTH)-1:0]	pqs,
-	output reg [(3*WIDTH)-1:0]	pqr,
+	output wire [WIDTH-1:0]		p,
+	output wire [WIDTH-1:0]		q,
+	output wire [WIDTH-1:0]		r,
+	output wire [WIDTH-1:0]		s,
 
-	output reg [WIDTH-1:0] d_p,
-	output reg [WIDTH-1:0] d_q,
-	output reg [WIDTH-1:0] d_r,
-	output reg [WIDTH-1:0] d_s,
+	output wire					pqrs_ready,
 
-	output reg [WIDTH-1:0] c_p,
-	output reg [WIDTH-1:0] c_q,
-	output reg [WIDTH-1:0] c_r,
-	output reg [WIDTH-1:0] c_s,
+	output reg [WIDTH-1:0] 		d_p,
+	output reg [WIDTH-1:0] 		d_q,
+	output reg [WIDTH-1:0] 		d_r,
+	output reg [WIDTH-1:0] 		d_s,
+		
+	output reg [WIDTH-1:0] 		c_p,
+	output reg [WIDTH-1:0] 		c_q,
+	output reg [WIDTH-1:0] 		c_r,
+	output reg [WIDTH-1:0] 		c_s,
+		
+
 
 	output reg 					done
 
@@ -51,7 +55,7 @@ localparam STATE_ROUND_DONE 		= 3'd3;
 
 wire [ 17  : 0 ] e;//public_key 
 
-reg [WIDTH-1:0] p,q,r,s; // four prime numbers
+//wire [WIDTH-1:0] p,q,r,s; // four prime numbers
 //reg [WIDTH-1:0] d_p,d_q,d_r,d_s; // multiplicative inverse to e(public key) respectivly p,q,r,s
 //reg [WIDTH-1:0] c_p,c_q,c_r,c_s; //CRT coefficient respectivly p,q,r,s
 
@@ -60,6 +64,7 @@ reg [WIDTH-1:0] p,q,r,s; // four prime numbers
 reg [(3*WIDTH)-1:0] temp_1,temp_2,temp_3,temp_4; // for CRT calculation & CRT coefficient calculation
 
 reg [WIDTH-1 : 0] CRT_mem   [0 : 11];//
+//wire               pqrs_ready;
 
 /*
 			   multiplicarive invers
@@ -148,28 +153,33 @@ begin : CRT_memeory
 end // CRT_mem
 
 
-always @*
-begin : pqrs
+/*always @*
+begin : pqrs_con
   	qrs = q*r*s;
 	prs = p*r*s;
 	pqs = p*q*s;
 	pqr = p*q*r;
 
-end // pqrs
+end // pqrs_con
+
+always @*
+begin : pqrs_dec
+  	pqrs = p*q*r*s;
+	pqrs_done = pqrs_ready;
+end // pqrs_dec*/
 
 //start selector
-always @(*) begin 
-	if(next && init_round_count == 3'b0) begin
+always @(*) begin //next -> relpace by pqrs_ready
+	if(pqrs_ready && init_round_count == 3'b0) begin
 		start_init = 1'b1;
 		count      = 3'b0;
-		p = 512'd5 ;//5
+		/*p = 512'd5 ;//5
 		q = 512'd11;
 		r = 512'd17;
-		s = 512'd19;
-	end else if(next && init_round_count != 3'b0 ) begin
+		s = 512'd19;*/
+	end else if(pqrs_ready && init_round_count != 3'b0 ) begin
 		start_new  = 1'b1;
 		start_init = 1'b0;
-		count      = (count + 3'd1)%3'd4;
 		
 	end else begin
 		start_init = 1'b0;
@@ -187,6 +197,11 @@ always @(init_round_done,change_done,next)begin
   	
 end // done
 
+always @(*) begin
+	if (change_done) begin
+		count = (count + 1'd1)%3'd4;
+	end
+end
 
 
 //load p,q,r,s
@@ -474,8 +489,24 @@ end
     //.error (error)
   );
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  prime_feed 
+#(
+  .WIDTH(WIDTH)
+)
+prime_feed_dut
+(
+  .aclk(aclk),
+  .aresetn(aresetn),
+  .next(next),
+  .pqrs_ready(pqrs_ready),
+  .p(p),
+  .q(q),
+  .r(r),
+  .s(s)
+);
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-always @(*) begin 
+/*always @(*) begin 
 	if (start_new) begin
 		case (count)
 			3'd0: p = 512'd23;
@@ -489,7 +520,7 @@ always @(*) begin
 	end else begin
 		start_round = 1'b0;
 	end
-end
+end*/
 //FSM 2
 always @(posedge aclk) begin 
 	if(!aresetn) begin
@@ -498,7 +529,7 @@ always @(posedge aclk) begin
 		case (state_round)
 		STATE_ROUN_INIT :
 		begin
-			if (start_round) begin
+			if (start_new) begin//start_round
 				state_round <= STATE_ROUN_RUN;
 			end
 		end
