@@ -80,6 +80,8 @@ wire [(3*WIDTH)-1:0] qrs,prs,pqs,pqr;
 wire [(4*WIDTH)-1:0] pqrs;
 
 reg [3:0 ]           state;
+
+//reg [(4*WIDTH)-1:0]  Decrypted_Data;
 //wire [WIDTH-1:0]      Exponent;
 //----------------------------------------------------------------
 // assignments for ports.
@@ -242,7 +244,7 @@ always @(posedge aclk) begin
 end
 
 
-always @(posedge aclk) begin 
+/*always @(posedge aclk) begin 
 	if(!aresetn) begin
 		
 	end else begin
@@ -295,7 +297,132 @@ always @(posedge aclk) begin
 				Decrypt_done <= 1'b1;
 			end
 		
-			default : /* default */;
+			
+		endcase
+	end
+end*/
+
+//next
+always @(posedge aclk) begin 
+	if(!aresetn) begin
+		next <= 1'b0;
+	end else begin
+		case (state)
+		
+
+			STATE_INIT :
+			begin
+				next <= 1'b1;		
+			end
+			STATE_ROUND :
+			begin
+				next <= 1'b0;
+			end
+			
+		
+		
+		endcase
+	end
+end
+
+//set pblic key
+always @(posedge aclk) begin 
+	if(!aresetn) begin
+		Out_publicKey_exp   <= 512'b0; 
+		Out_publicKey_mod   <= 512'b0; 
+		ready_to_encryption <= 512'b0;
+	end else begin
+		case (state)
+		
+			STATE_SEND_PUBLIC_KEY :
+			begin
+				Out_publicKey_exp 	<= 512'd65537;
+				Out_publicKey_mod 	<= pqrs;
+				ready_to_encryption <= 1'b1;
+			end
+		
+		endcase
+	end
+end
+
+//set decryption
+always @(posedge aclk) begin 
+	if(!aresetn) begin
+		/*Number_00 <= 512'b0;
+		Number_01 <= 512'b0;
+		Number_02 <= 512'b0;
+		Number_03 <= 512'b0;
+		Modules_00 <= 512'b0;
+		Modules_01 <= 512'b0;
+		Modules_02 <= 512'b0;
+		Modules_03 <= 512'b0;
+		Exponent_00 <= 512'b0;
+		Exponent_01 <= 512'b0;
+		Exponent_02 <= 512'b0;
+		Exponent_03 <= 512'b0;*/
+	end else begin
+		case (state)
+	
+			STATE_DECRYPT :
+			begin
+				ready_to_encryption <= 1'b0;
+
+				Number_00  <= In_Data_word % p;
+				Number_01  <= In_Data_word % q;
+				Number_02  <= In_Data_word % r;
+				Number_03  <= In_Data_word % s;
+
+				Modules_00 <= p; 
+				Modules_01 <= q; 
+				Modules_02 <= r; 
+				Modules_03 <= s; 
+
+				Exponent_00 <= d_p; 
+				Exponent_01 <= d_q;
+				Exponent_02 <= d_r;
+				Exponent_03 <= d_s;
+			end
+
+		
+		
+		endcase
+	end
+end
+
+//CRT calculation
+always @(posedge aclk) begin 
+	if(!aresetn) begin
+		Out_Data_word <= 2048'b0;
+	end else begin
+		case (state)
+	
+			STATE_DECRYPT_CAL :
+			begin
+				Out_Data_word <= (response_00*qrs*c_p + response_01*prs*c_q + response_02*pqs*c_r + response_03*pqr*c_s)%pqrs; 
+			end
+		
+		
+		endcase
+	end
+end
+
+//done decryption
+always @(posedge aclk) begin 
+	if(!aresetn) begin
+		Decrypt_done <= 1'b0;
+	end else begin
+		case (state)
+			STATE_IDLE :
+			begin
+				Decrypt_done <= 1'b0;
+			end
+
+			STATE_DECRYPT_DONE :
+			begin
+				Decrypt_done <= 1'b1;
+			end
+		
+			
 		endcase
 	end
 end

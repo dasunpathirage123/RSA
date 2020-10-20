@@ -85,14 +85,19 @@ RSA_encryption_dut
     wait(Encrypt_done);
     In_Data_word = Encrypted_Data;
     In_Data_Ready =1'b1;
-    /*@(posedge aclk);
-    In_Data_Ready =1'b0;*/
+    wait(Decrypt_done);
+    @(posedge aclk);
+    New_RSA_Start = 1'b1;
+    @(posedge aclk);
+    New_RSA_Start = 1'b0;
+    wait(ready_to_encryption);
+    Data_word = 512'd101;
+    Exp_publicKey = Out_publicKey_exp;
+    Mod_pqrs = Out_publicKey_mod;
 
-    /*if (done) begin
-      next = 1'b1;
-      @(posedge aclk);
-      next = 1'b0;
-    end*/
+    wait(Encrypt_done);
+    In_Data_word = Encrypted_Data;
+    In_Data_Ready =1'b1;
  
     end // initial
 
